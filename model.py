@@ -1,27 +1,47 @@
-# Load model directly
-# from transformers import AutoTokenizer, AutoModelForTableQuestionAnswering
+'''
+    EXEMPLO COM AMOSTRAS DE REGISTROS JUNTO COM NOMES DAS COLUNAS
+'''
 
-# tokenizer = AutoTokenizer.from_pretrained("google/tapas-base-finetuned-wtq")
-# model = AutoModelForTableQuestionAnswering.from_pretrained("google/tapas-base-finetuned-wtq")
+from sentence_transformers import SentenceTransformer, util
+import pandas as pd
 
-# from transformers import AutoTokenizer, AutoModelForSequenceClassification
+# Modelo de similaridade semântica
+modelo = SentenceTransformer('all-MiniLM-L6-v2')
 
-# # Carregar modelo pré-treinado
-# tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
-# model = AutoModelForSequenceClassification.from_pretrained("bert-base-uncased", num_labels=7)
+# Descrições das colunas-alvo
+descricoes_colunas = {
+    'data_movimentacao': 'Data em que a movimentação ocorreu',
+    'valor_pago': 'Valor que foi pago na transação',
+    'valor_recebido': 'Valor que foi recebido na transação',
+    'valor_base': 'Valor base utilizado no cálculo da transação',
+}
 
-# # Classificar cabeçalhos
-# headers = ["DATA_MOV", "VALOR_TOTAL", "RAZAO_SOCIAL"]
+# Carrega uma tabela de exemplo
+arquivo = 'tabela_exemplo.xlsx'
+df = pd.read_excel(arquivo)
 
-# inputs = tokenizer(headers, padding=True, truncation=True, return_tensors="pt")
-# outputs = model(**inputs)
-# predictions = outputs.logits.argmax(dim=1)
-# print(predictions)  # Retorna o mapeamento das colunas
+# Função para prever categorias
+def prever_colunas(df, descricoes_colunas, modelo):
+    colunas_mapeadas = {}
+    embeddings_descricoes = {k: modelo.encode(v) for k, v in descricoes_colunas.items()}
 
+    for coluna in df.columns:
+        # Cria embeddings para o nome e uma amostra dos valores
+        nome_coluna = modelo.encode(coluna)
+        conteudo_coluna = modelo.encode(" ".join(map(str, df[coluna].dropna().head(10))))
 
-from sentence_transformers import SentenceTransformer
-sentences = ["I like the sun", "The sun is good"]
+        # Calcula similaridade com descrições
+        similaridades = {
+            categoria: util.cos_sim(nome_coluna + conteudo_coluna, emb)[0].item()
+            for categoria, emb in embeddings_descricoes.items()
+        }
 
-model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
-embeddings = model.encode(sentences)
-print(embeddings)
+        # Associa à categoria com maior similaridade
+        melhor_categoria = max(similaridades, key=similaridades.get)
+        colunas_mapeadas[melhor_categoria] = df[coluna]
+
+    return pd.DataFrame(colunas_mapeadas)
+
+# Aplica a função
+df_mapeado = prever_colunas(df, descricoes_colunas, modelo)
+print(df_mapeado)
