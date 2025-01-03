@@ -14,3 +14,19 @@ columns_description = {
     'valor_recebido': 'Valor total recebido de uma transação',
     'valor_base': 'Base de cálculo para a operação financeira',
 }
+
+# Exemplo pensando no Banco de Dados
+columns_target = {
+    "data_movimentacao": {
+        "aliases": ["data movimentação", "dt_mov", "mov_date", "data"],
+        "description": "Data em que a movimentação financeira ocorreu."
+    },
+    "valor_pago": {
+        "aliases": ["valor pago", "vl_pago", "amount paid"],
+        "description": "Montante pago em uma transação financeira."
+    },
+    "valor_recebido": {
+        "aliases": ["valor recebido", "vl_recebido", "received value"],
+        "description": "Montante recebido em uma transação financeira."
+    }
+}
